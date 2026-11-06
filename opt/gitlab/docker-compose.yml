@@ -1,0 +1,71 @@
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:${GITLAB_VERSION}
+    container_name: gitlab
+    hostname: ${GITLAB_HOST}
+    restart: unless-stopped
+    shm_size: "256m"
+
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        # URL publique de GitLab
+        external_url 'https://${GITLAB_HOST}'
+
+        # NGINX externe assure le HTTPS
+        nginx['listen_port'] = 80
+        nginx['listen_https'] = false
+
+        # SSH GitLab
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+
+        # Fuseau horaire
+        gitlab_rails['time_zone'] = 'Africa/Ouagadougou'
+
+        # Container Registry intégré
+        registry_external_url 'https://${REGISTRY_HOST}'
+        registry['enable'] = true
+        registry_nginx['listen_port'] = 5050
+        registry_nginx['listen_https'] = false
+
+        # TLS géré par NGINX externe
+        letsencrypt['enable'] = false
+
+    ports:
+      # HTTP GitLab : accès local uniquement
+      - "127.0.0.1:8929:80"
+
+      # Registry : accès local uniquement
+      - "127.0.0.1:5050:5050"
+
+      # SSH GitLab : port hôte 2222 vers port conteneur 22
+      - "2222:22"
+
+    volumes:
+      - ./config:/etc/gitlab
+      - ./logs:/var/log/gitlab
+      - ./data:/var/opt/gitlab
+
+    networks:
+      - proxy
+
+    stop_grace_period: 1m
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:alpine
+    container_name: gitlab-runner
+    restart: unless-stopped
+
+    depends_on:
+      - gitlab
+
+    volumes:
+      - ./runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
