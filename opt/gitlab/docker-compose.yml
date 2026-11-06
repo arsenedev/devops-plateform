@@ -3,18 +3,18 @@ services:
   gitlab:
     image: gitlab/gitlab-ce:${GITLAB_VERSION}
     container_name: gitlab
-    hostname: ${GITLAB_HOST}
+    hostname: ${DEVOPS_HOST}
     restart: unless-stopped
     shm_size: "256m"
 
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         # URL publique de GitLab
-        external_url 'https://${GITLAB_HOST}'
+        external_url 'https://${DEVOPS_HOST}'
 
         # NGINX externe assure le HTTPS
         nginx['listen_port'] = 80
-        nginx['listen_https'] = false
+        nginx['listen_https'] = true
 
         # SSH GitLab
         gitlab_rails['gitlab_shell_ssh_port'] = 2222
@@ -26,10 +26,10 @@ services:
         registry_external_url 'https://${REGISTRY_HOST}'
         registry['enable'] = true
         registry_nginx['listen_port'] = 5050
-        registry_nginx['listen_https'] = false
+        registry_nginx['listen_https'] = true
 
         # TLS géré par NGINX externe
-        letsencrypt['enable'] = false
+        letsencrypt['enable'] = true
 
     ports:
       # HTTP GitLab : accès local uniquement
